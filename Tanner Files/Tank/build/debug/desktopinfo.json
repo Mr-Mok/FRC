@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Tank (in project Tank)",
+    "file": "C:\\Users\\DBQRobotics\\Documents\\Robotics\\Tank\\build\\libs\\Tank.jar",
+    "extensions": [
+      "C:\\Users\\DBQRobotics\\Documents\\Robotics\\Tank\\build\\tmp\\expandedArchives\\halsim_gui-2020.2.2-windowsx86-64.zip_f45deb918a703b9a683ad4047e06ed3c\\windows\\x86-64\\shared\\halsim_gui.dll"
+    ],
+    "librarydir": "C:\\Users\\DBQRobotics\\Documents\\Robotics\\Tank\\build\\tmp\\jniExtractDir",
+    "mainclass": "frc.robot.Main"
+  }
+]
