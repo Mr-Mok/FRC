@@ -1,1 +1,241 @@
-// Paste Robot code here.
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
+
+package frc.robot; //FRC package.
+// Revrobotics package.
+import java.lang.Math;
+import edu.wpi.first.wpilibj.XboxController; //For Logitech controller. Subject to change.
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.TimedRobot; //For info about time with the bot
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANEncoder;
+import java.lang.Math;
+import com.revrobotics.ControlType;
+// import edu.wpi.first.cameraserver.CameraServer; //For cameras on the bot.
+// import edu.wpi.first.wpilibj.DoubleSolenoid; //For controlling pneumatics.
+// import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+//import edu.wpi.cscore.UsbCamera; //For the usb cameras.
+//import edu.wpi.first.networktables.NetworkTableInstance; //The reason for this import is unknown, currently. It is assumed to be needed.
+//import edu.wpi.first.networktables.NetworkTableEntry; //The reason for this import is unknown, currently. It is assumed to be needed.
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.EncoderType;
+import edu.wpi.first.wpilibj.Compressor;
+import com.revrobotics.CANPIDController;
+public class Robot extends TimedRobot { //On startup, I believe.
+    private XboxController d_LogitechGamepad; // Declaring the Logitech controller's existence.
+    private CANSparkMax m_angleMotorOne;
+    private CANEncoder d_encoderMotorOne;
+    private CANSparkMax m_speedMotorOne;
+    private CANSparkMax m_angleMotorTwo;
+    private CANSparkMax m_speedMotorTwo;
+    private CANSparkMax m_angleMotorThree;
+    private CANSparkMax m_speedMotorThree;
+    private CANSparkMax m_angleMotorFour;
+    private CANSparkMax m_speedMotorFour;
+    private CANPIDController d_PIDControllerOne;
+    private CANPIDController d_PIDControllerTwo;
+    private CANPIDController d_PIDControllerThree;
+    private CANPIDController d_PIDControllerFour;
+    private double v_stickRevolution; // should only ever be between zero and one.
+    private final double v_L = 19;
+    private final double v_W = 22.5;
+    private final double v_MAX_VOLTS = 4.95;
+    private double v_gamepadPosR;
+    private double v_errorR;
+    private double v_xLeft;
+    private double v_yLeft;
+    private double v_xRight;
+    private CANEncoder d_CANEncoderOne;
+    private CANEncoder d_CANEncoderTwo;
+    private CANEncoder d_CANEncoderThree;
+    private CANEncoder d_CANEncoderFour;
+    // private double v_a;
+    // private double v_b;
+    // private double v_c;
+    // private double v_d;
+    // private double v_r;
+    // private double v_backRightSpeed;
+    // private double v_backLeftSpeed;
+    // private double v_frontRightSpeed;
+    // private double v_frontLeftSpeed;
+    // private double v_backRightAngle;
+    // private double v_backLeftAngle;
+    // private double v_frontRightAngle;
+    // private double v_frontLeftAngle;
+    // private double setpoint;
+    // DoubleSolenoid p1;
+    // DoubleSolenoid p2;
+    // UsbCamera d_Camera; //For the extender camera.
+    // NetworkTableEntry cameraSelection; //For cameras and switching between.
+@Override //Not sure why this is here. Doesn't polymorphism do this already?
+public void robotInit() {
+  d_LogitechGamepad = new XboxController(2); //Declaring Logitech controller port.
+  m_angleMotorOne = new CANSparkMax(1, MotorType.kBrushless);
+  d_PIDControllerOne = new CANPIDController(m_angleMotorOne);
+  d_CANEncoderOne = new CANEncoder(m_angleMotorOne);
+  d_PIDControllerOne.setOutputRange(-1, 1);
+  m_angleMotorTwo = new CANSparkMax(3, MotorType.kBrushless);
+  d_PIDControllerTwo = new CANPIDController(m_angleMotorTwo);
+  d_CANEncoderTwo = new CANEncoder(m_angleMotorTwo);
+  d_PIDControllerTwo.setOutputRange(-1,1);
+  m_angleMotorThree = new CANSparkMax(5, MotorType.kBrushless);
+  d_PIDControllerThree = new CANPIDController(m_angleMotorThree);
+  d_CANEncoderThree = new CANEncoder(m_angleMotorThree);
+  d_PIDControllerThree.setOutputRange(-1,1);
+  m_angleMotorFour = new CANSparkMax(7, MotorType.kBrushless);
+  d_PIDControllerFour = new CANPIDController(m_angleMotorFour);
+  d_CANEncoderFour = new CANEncoder(m_angleMotorFour);
+  d_PIDControllerFour.setOutputRange(-1,1);
+  m_speedMotorOne = new CANSparkMax(2, MotorType.kBrushless);
+  m_speedMotorTwo = new CANSparkMax(4, MotorType.kBrushless);
+  m_speedMotorThree = new CANSparkMax(6, MotorType.kBrushless);
+  m_speedMotorFour = new CANSparkMax(8, MotorType.kBrushless);
+  m_speedMotorTwo.follow(m_speedMotorOne);
+  m_speedMotorThree.follow(m_speedMotorOne);
+  m_speedMotorFour.follow(m_speedMotorOne);
+  m_angleMotorTwo.follow(m_angleMotorOne);
+  m_angleMotorThree.follow(m_angleMotorOne);
+  m_angleMotorFour.follow(m_angleMotorOne);
+  }
+  public double getError(CANEncoder encoder)
+  {
+    v_xLeft = d_LogitechGamepad.getRawAxis(0);
+    v_yLeft = d_LogitechGamepad.getRawAxis(1);
+    v_gamepadPosR = Math.sqrt((v_xLeft * v_xLeft) + (v_yLeft * v_yLeft));
+    v_errorR = v_gamepadPosR - encoder.getPosition();
+    return v_errorR;
+
+  }
+  // public void driveSetup( double v_x1, double v_y1, double v_x2)
+  // {
+  //   v_r = Math.sqrt ((v_L * v_L) + (v_W * v_W));
+  //   v_y1 *= -1;
+
+  //   v_a = v_x1 - v_x2 * (v_L / v_r);
+  //   v_b = v_x1 + v_x2 * (v_L / v_r);
+  //   v_c = v_y1 - v_x2 * (v_W / v_r);
+  //   v_d = v_y1 + v_x2 * (v_W / v_r);
+
+  //   v_backRightSpeed = Math.sqrt ((v_a * v_a) + (v_d * v_d));
+  //   v_backLeftSpeed = Math.sqrt ((v_a * v_a) + (v_c * v_c));
+  //   v_frontRightSpeed = Math.sqrt ((v_b * v_b) + (v_d * v_d));
+  //   v_frontLeftSpeed = Math.sqrt ((v_b * v_b) + (v_c * v_c));
+
+  //   v_backRightAngle = Math.atan2 (v_a, v_d) / Math.PI;
+  //   v_backLeftAngle = Math.atan2 (v_a, v_c) / Math.PI;
+  //   v_frontRightAngle = Math.atan2 (v_b, v_d) / Math.PI;
+  //   v_frontLeftAngle = Math.atan2 (v_b, v_c) / Math.PI;
+  // }
+  // public void drive(double angle, double speed, CANSparkMax speedDevice, CANPIDController PIDController)
+  // {
+  //   speedDevice.set(speed);
+  //   setpoint = angle * (MAX_VOLTS * .5) + (MAX_VOLTS * .5); // Optimization offset can be calculated here.
+  //   if (setpoint < 0) {
+  //       setpoint = MAX_VOLTS + setpoint;
+  //   }
+  //   if (setpoint > MAX_VOLTS) {
+  //       setpoint = setpoint - MAX_VOLTS;
+  //   }
+
+  //   PIDController.setReference(setpoint, ControlType.kVoltage);
+  // }
+
+
+  // p1 = new DoubleSolenoid(0, 1); //These are placeholder values. Here is a chart: (module #, forward channel, reverse channel)
+ 
+  // Compressor test = new Compressor();
+  // test.start();
+  //CameraServer.getInstance().startAutomaticCapture(); //Beginning the capture on the camera server.
+  //d_frontCamera = CameraServer.getInstance().startAutomaticCapture(1); //Beginning capture on the front camera.
+  //cameraSelection = NetworkTableInstance.getDefault().getTable("").getEntry("CameraSelection"); //Unsure what it does, but it is needed to use cameras.
+  
+
+@Override
+public void teleopPeriodic() {//drive time loop
+  v_xLeft = d_LogitechGamepad.getRawAxis(0);
+  v_xRight = d_LogitechGamepad.getRawAxis(4);
+  m_angleMotorOne.set(.333 * v_xLeft);
+  m_speedMotorOne.set(.333 * v_xRight);
+  System.out.println("PositionAngleMotor: " +  d_CANEncoderOne.getPosition());
+  // m_angleMotorOne.set(.25 * d_LogitechGamepad.getRawAxis(0));
+  // m_speedMotorOne.set(.25 * d_LogitechGamepad.getRawAxis(5));
+  // if (Math.abs(d_LogitechGamepad.getRawAxis(0)) < .004)
+  // {
+  // m_angleMotorOne.set(.25 * -d_LogitechGamepad.getRawAxis(5));
+  // }
+  // driveSetup(d_LogitechGamepad.getRawAxis(0), d_LogitechGamepad.getRawAxis(1), d_LogitechGamepad.getRawAxis(4));
+  // drive(v_backRightAngle, v_backRightSpeed, m_speedMotorOne, d_PIDControllerOne);
+  // drive(v_backLeftAngle, v_backLeftSpeed, m_speedMotorTwo, d_PIDControllerTwo);
+  // drive(v_frontRightAngle, v_frontRightSpeed, m_speedMotorThree, d_PIDControllerThree);
+  // drive(v_frontLeftAngle, v_frontLeftSpeed, m_speedMotorFour, d_PIDControllerFour);
+
+  // CameraServer.getInstance().putVideo("mc_frontVideo", 160, 120); //This is to get the camera during teleop.
+  //wheelSetup(); //This method sets up the needed information from the joysticks to be later.
+  // if (d_LogitechGamepad.getRawButton(8))
+  // {
+  //   v_TempAdj += .025;
+  //   if (v_TempAdj > 1.0)
+  //   {
+  //     v_TempAdj = 1.0;
+  //   }
+  // }
+  // else if (d_LogitechGamepad.getRawButton(7))
+  // {
+  //   v_TempAdj -= .025;
+  //   if (v_TempAdj < 0.0)
+  //   {
+  //     v_TempAdj = 0.0;
+  //   }
+  // }
+  //Conclusion of swerve drive testing.
+  // cameraSelection.setString(mc_extenderCamera.getName());
+  // //Pneumatic stuff
+  // // kForward or kReverse are subject to change
+  // if(d_LogitechGamepad.getRawButton(1)){ //getRawButton(1) = A button on Gamepad !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //    p1.set(Value.kForward);
+  //  }
+  // else if(d_LogitechGamepad.getRawButton(4)){ //getRawButton(4) = Y button on Gamepad
+  //   p1.set(Value.kReverse);
+
+  // }
+  // else{
+  //   p1.set(Value.kOff);
+
+  // }
+  
+  // if(mc_GamePadJoystick.getRawButton(3)){
+  //   if(cameraFlip.get()>initServo){
+  //       cameraFlip.set(initServo);
+  //   }
+  //   else if(cameraFlip.get() == initServo){
+  //     cameraFlip.set(initServo+.25);
+  //   }
+  // }
+  // else{
+  //   mc_cameraPush.set(Value.kOff);
+  // }
+  //Endgame stuff
+  // if(mc_GamePadJoystick.getRawAxis(3) > 0 && mc_GamePadJoystick.getRawAxis(3) < 1){ //getRawButton(2) = A button on Gamepad 
+  //   mc_climb.set(Value.kForward);
+  // }
+  // else if(mc_GamePadJoystick.getRawAxis(3) < 0 && mc_GamePadJoystick.getRawAxis(3) > -1){ //getRawButton(4) = Y button on Gamepad
+  //   mc_climb.set(Value.kReverse);
+  // }
+  // else{
+  //   mc_climb.set(Value.kOff);
+  // }
+  // if(mc_leftStick.getRawButton(3)){
+  //   mc_linearSlide.set(1);
+  // }
+  // else if(mc_rightStick.getRawButton(3)){
+  //   mc_linearSlide.set(-1);
+  // }
+  // else{
+  //   mc_linearSlide.set(0);
+  // }
+    }  
+  }
